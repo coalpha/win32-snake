@@ -1,0 +1,13 @@
+{
+   "version": "0.2.0",
+   "configurations": [
+      {
+         "type": "lldb",
+         "request": "launch",
+         "name": "debug",
+         "program": "${workspaceFolder}/bin/win32-snake.tiny.exe",
+         "cwd": "${workspaceFolder}",
+         "terminal": "external"
+      }
+   ]
+}
