@@ -25,7 +25,7 @@ static SMALL_RECT const consoleWindowRect =
    { .Left   = 0
    , .Top    = 0
    , .Right  = W
-   , .Bottom = H
+   , .Bottom = H - 1
    };
 static void configWindow(void) {
    SetConsoleWindowInfo(hStdout, true, &consoleWindowRect);
@@ -122,16 +122,17 @@ static struct GameCoord snakeFood = {.x = 0, .y = 0};
 static void randomizeFood(void) {
    clearChar(gameCoordToBufferPtr(snakeFood));
 
-   snakeFood.x = rand() % W;
-   snakeFood.y = rand() % H;
+   // all this minus one plus one nonsense is because of the borders
+   snakeFood.x = rand() % (W - 2) + 1;
+   snakeFood.y = rand() % (H - 2) + 1;
 
    while (isInSnake(snakeFood)) {
       snakeFood.x++;
-      if (snakeFood.x == W) {
-         snakeFood.x = 0;
+      if (snakeFood.x == W - 1) {
+         snakeFood.x = 1;
          snakeFood.y++;
-         if (snakeFood.y == H) {
-            snakeFood.y = 0;
+         if (snakeFood.y == H - 1) {
+            snakeFood.y = 1;
          }
       }
    }
@@ -141,8 +142,12 @@ static void randomizeFood(void) {
    newSnakeFoodPtr->Attributes = fLight | fRed;
 }
 
-static inline void color(struct GameCoord const gc) {
-   gameCoordToBufferPtr(gc)->Attributes = bLight | bGreen;
+static inline void green(struct GameCoord const gc) {
+   gameCoordToBufferPtr(gc)->Attributes = bGreen;
+}
+
+static inline void cyan(struct GameCoord const gc) {
+   gameCoordToBufferPtr(gc)->Attributes = bGreen | bBlue;
 }
 
 static inline void uncolor(struct GameCoord const gc) {
@@ -153,17 +158,38 @@ static inline void grey(struct GameCoord const gc) {
    gameCoordToBufferPtr(gc)->Attributes = bLight;
 }
 
-static inline void greySnake(void) {
+static inline void drawBorders(void) {
+   // yes, I'm grey-ing things twice. nobody cares.
+   struct GameCoord gc;
+   // top row
+   for (gc.x = 0, gc.y = 0; gc.x < W; ++gc.x) {
+      grey(gc);
+   }
+   // left column
+   for (gc.x = 0, gc.y = 0; gc.y < H - 1; ++gc.y) {
+      grey(gc);
+   }
+   // bottom row
+   for (gc.x = 0, gc.y = H - 1; gc.x < W; ++gc.x) {
+      grey(gc);
+   }
+   // right column
+   for (gc.x = W - 1, gc.y = 0; gc.y < H; ++gc.y) {
+      grey(gc);
+   }
+}
+
+static inline void deadSnake(void) {
    for (
       size_t snakePos = snakeHead;
       snakePos != snakeTail;
       snakePos = ringPrev(snakePos)
    ) {
-      grey(snakeBody[snakePos]);
+      cyan(snakeBody[snakePos]);
       writeFrame();
       Sleep(MS_PER_FRAME_HORIZONTAL);
    }
-   grey(snakeBody[snakeTail]);
+   cyan(snakeBody[snakeTail]);
    writeFrame();
 }
 
@@ -181,19 +207,26 @@ int start(void) {
    hStdin = GetStdHandle(STD_INPUT_HANDLE);
    consoleWindow = GetConsoleWindow();
 
-   DWORD oldMode;
-   GetConsoleMode(hStdin, &oldMode);
+   DWORD oldConsoleMode;
+   GetConsoleMode(hStdin, &oldConsoleMode);
    SetConsoleMode(hStdin, 0);
+
+   CONSOLE_CURSOR_INFO oldCursorInfo;
+   GetConsoleCursorInfo(hStdout, &oldCursorInfo);
+   CONSOLE_CURSOR_INFO const newCursorInfo = {.bVisible = false, .dwSize = 1};
+   SetConsoleCursorInfo(hStdout, &newCursorInfo);
 
    SetConsoleScreenBufferSize(hStdout, widthHeight);
    SetConsoleTitleW(L"win32-snake");
+
+   drawBorders();
 
    snakeBody[snakeTail] = (struct GameCoord) {.x = W/2, .y = H/2};
    snakeBody[snakeHead] = snakeBody[snakeTail];
    snakeBody[snakeHead].x += 1;
 
-   color(snakeBody[snakeTail]);
-   color(snakeBody[snakeHead]);
+   green(snakeBody[snakeTail]);
+   green(snakeBody[snakeHead]);
    randomizeFood();
    configWindow();
    writeFrame();
@@ -245,10 +278,10 @@ int start(void) {
       }
 
       if (false
-         || newHead.x < 0
-         || newHead.y < 0
-         || newHead.x == W
-         || newHead.y == H
+         || newHead.x < 1
+         || newHead.y < 1
+         || newHead.x == W - 1
+         || newHead.y == H - 1
          || isInSnake(newHead)
       ) goto END_SCREEN;
 
@@ -269,11 +302,11 @@ int start(void) {
          snakeTail = ringNext(snakeTail);
       }
 
-      color(newHead);
+      green(newHead);
       writeFrame();
    }
 END_SCREEN:
-   Sleep(1000);
+   Sleep(400);
    // clear the input buffer
    {
       DWORD numEvents;
@@ -283,12 +316,13 @@ END_SCREEN:
       while (numEvents --> 0) {
          ReadConsoleInputW(hStdin, &ir, 1, &numEventsRead);
       }
-      greySnake();
+      deadSnake();
       wchar_t chr;
       DWORD charsRead;
       ReadConsoleW(hStdin, &chr, 1, &charsRead, NULL);
    }
    clear();
-   SetConsoleMode(hStdin, oldMode);
+   SetConsoleMode(hStdin, oldConsoleMode);
+   SetConsoleCursorInfo(hStdout, &oldCursorInfo);
    return 0;
 }
