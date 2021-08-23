@@ -11,6 +11,10 @@ endif
 
 libpath := $(shell misc/winsdk.exe --type:lib --arch:x64 --kit:um)
 
+cflags += -std=c99
+cflags += -Wall
+cflags += -Wextra
+cflags += -pedantic
 cflags += -nostdlib
 cflags += -ffreestanding
 cflags += -fno-stack-check
@@ -25,8 +29,6 @@ cflags += -Xlinker /entry:start
 cflags += -Xlinker /nodefaultlib
 cflags += -Xlinker /subsystem:console
 cflags += -Xlinker /libpath:"$(libpath)"
-
-rcedit := "misc/rcedit/rcedit-x64.exe"
 
 rcedit := "misc/rcedit/rcedit-x64.exe"
 
