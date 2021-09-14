@@ -68,18 +68,19 @@ static inline u8 gameCoordEq(struct GameCoord const gcA, struct GameCoord const 
 static struct GameCoord snakeBody[AREA];
 static size_t snakeTail = 0;
 static size_t snakeHead = 1;
-static inline size_t ringNext(size_t const idx) {
-   return idx + 1 % AREA;
+static inline size_t ringNext(size_t idx) {
+   ++idx;
+   return idx == AREA ? 0 : idx;
 }
 static inline size_t ringPrev(size_t const idx) {
-   return idx - 1 % AREA;
+   return (idx ? idx : AREA) - 1;
 }
 
 static inline CHAR_INFO *gameCoordToBufferPtr(struct GameCoord const gc) {
    return frameBuffer + (size_t) gc.y * W + (size_t) gc.x;
 }
 
-static inline u8 isInSnake(struct GameCoord const gc) {
+static u8 isInSnake(struct GameCoord const gc) {
    for (
       size_t snakePos = snakeTail;
       snakePos != snakeHead;
@@ -105,7 +106,7 @@ static inline u8 isInSnake(struct GameCoord const gc) {
 #define fWhite fRed | fGreen | fBlue
 #define bWhite bRed | bGreen | bBlue
 
-static inline u64 rand() {
+static u64 rand() {
    SYSTEMTIME st;
    GetSystemTime(&st);
    return *((u64 *) &(st.wSecond));

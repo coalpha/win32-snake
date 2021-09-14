@@ -35,6 +35,9 @@ rcedit := "misc/rcedit/rcedit-x64.exe"
 build: clean bin/$n.exe
 	-
 
+bin/$n.ll: src/$n.c bin Makefile
+	clang $< $(cflags) -masm=intel -fverbose-asm -S -o $@
+
 bin/$n.tiny.exe: src/$n.c bin Makefile
 	clang $< $(cflags) -o $@
 ifeq ($(mode), release)
