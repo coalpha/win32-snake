@@ -11,7 +11,7 @@ endif
 
 libpath := $(shell misc/winsdk.exe --type:lib --arch:x64 --kit:um)
 
-cflags += -std=c99
+cflags += -std=c11
 cflags += -Wall
 cflags += -Wextra
 cflags += -pedantic
